@@ -1,0 +1,17 @@
+# JetBrains IDE settings
+.idea/
+
+# OSX specials
+._*
+.DS_Store
+
+# Build files
+build/assets/
+build/coverage/
+build/phpunit.xml
+
+# Composer files
+vendor/
+
+# Sensitive credentials
+*.env

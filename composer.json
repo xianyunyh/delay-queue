@@ -1,0 +1,15 @@
+{
+    "name": "xianyun/delay-queue",
+    "authors": [
+        {
+            "name": "xianyunyehe",
+            "email": "tianlei542475736@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "DelayQueue\\":"src/"
+        }
+    }
+}
