@@ -9,9 +9,11 @@ class Redis
     protected $jobPrefix = 'topic_job';
 
     protected $set = 'bucket';
-    public function __construct()
+    public function __construct(array $config = [])
     {
-        $this->redis =  new \Redis();
+        $redis = new \Swoole\Coroutine\Redis();
+        $redis->connect('127.0.0.1', 6379);
+        $this->redis = $redis;
     }
 
     /**
