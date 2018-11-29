@@ -43,13 +43,11 @@ class Http
      */
     public function onWorkStart(Server $server,int $workerId)
     {
-        $workerNum = $server->setting['worker_number'];
+        $workerNum = $server->setting['worker_number'] ?? 4;
         //设置定时器
         $timeTicker = self::$config['time_ticker'];
         if($workerId % $workerNum === 0) {
-            $server->tick($timeTicker,function(){
-                echo "hello wolld".PHP_EOL;
-            });
+            $server->tick($timeTicker,[$this,'ticker']);
         }
     }
 
@@ -76,7 +74,6 @@ class Http
             $response->write('parse data error');
         }
         $data = $this->router($request);
-        var_dump($data);
         $response->end(json_encode($data));
     }
 
@@ -92,6 +89,19 @@ class Http
 
     public function ticker()
     {
+        $bucket = self::$config['bucket'];
+        $redis = new Redis();
+        $ids = $redis->getBucketJobs($bucket);
+        if(empty($ids)) {
+            return ;
+        }
+        foreach ($ids as $id) {
+            echo $id;
+            $job = $redis->getOneJob($id);
+            $status = $job['status'];
+            var_dump($job);
+
+        }
 
     }
 

@@ -7,7 +7,7 @@ class Redis
 {
 
     protected $jobPrefix = 'topic_job';
-
+    protected $redis;
     protected $set = 'bucket';
     public function __construct(array $config = [])
     {
@@ -106,7 +106,12 @@ class Redis
      */
     protected function getTopics()
     {
+        
+    }
 
+    public function getBucketJobs(string $set)
+    {
+        return $this->redis->zrange($set,0,-1);
     }
 
 }

@@ -6,7 +6,10 @@
             "email": "tianlei542475736@gmail.com"
         }
     ],
-    "require": {},
+    "require": {
+      "ext-json": "*",
+      "ext-swoole": "^4.0"
+    },
     "autoload": {
         "psr-4": {
             "DelayQueue\\":"src/"
