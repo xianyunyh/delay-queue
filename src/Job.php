@@ -133,5 +133,10 @@ class Job
         return $this->store->getOneJob($id);
     }
 
+    public function updateJob($id,$key,$value)
+    {
+        $this->store->update($id,$key,$value);
+    }
+
 
 }

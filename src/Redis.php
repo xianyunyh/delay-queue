@@ -47,7 +47,7 @@ class Redis
         }
         try {
             $this->redis->hMSet($jobId,$data);
-            $this->redis->zAdd($this->set,$jobId,time());
+            $this->redis->zAdd($this->set,time(),$jobId);
         } catch (\Exception $e) {
             return false;
         }
@@ -63,13 +63,9 @@ class Redis
             return ;
         }
 
-        try {
-        	$this->redis->delete($jobId);
-        	$this->redis->zRem($this->set,$jobId);
-        } catch (\Exception $e) {
 
-        }
-
+        $this->redis->delete($jobId);
+        return $this->redis->zRem($this->set,$jobId);
     }
 
     /**
@@ -82,9 +78,21 @@ class Redis
         if(empty($jobId)) {
             return [];
         }
-        return $this->redis->hGetAll($jobId);
+        $data = [];
+        $result = $this->redis->hGetAll($jobId);
+        return $this->all($result);
     }
 
+    protected function all(array $result)
+    {
+        $data = [];
+        foreach ($result as $key=>$item) {
+            if($key %2 == 0) {
+                $data[$result[$key]] = $result[$key+1];
+            }
+        }
+        return $data;
+    }
     /**
      * 获取topic中的jobs
      *
@@ -95,7 +103,7 @@ class Redis
         $data = [];
         while ($id = $this->redis->lPop($topicId))
         {
-            $data[] = $this->redis->hGetAll($id);
+            $data[] = $this->all($this->redis->hGetAll($id));
         }
         return $data;
     }
@@ -114,4 +122,18 @@ class Redis
         return $this->redis->zrange($set,0,-1);
     }
 
+
+    public function update($id,$key,$value)
+    {
+        return $this->redis->hSetNx($id,$key,$value);
+    }
+
+    public function push($bucket,$data)
+    {
+        return $this->redis->lPushx($bucket,$data);
+    }
+    public function __call($name, $arguments)
+    {
+        return $this->redis->$name(...$arguments);
+    }
 }
