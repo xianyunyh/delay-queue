@@ -69,25 +69,29 @@ class Http
             return ;
         }
 
-        $data = $this->router($request,$response);
-        $response->end(json_encode($data));
+        //增加header头
+        $response->header("content-type","application/json");
+        try {
+            $responseData = $this->parseRoute($request,$response);
+            return $response->end(($responseData));
+        } catch (RequestException $e) {
+            return $response->end($e->formatJson());
+        }
     }
 
-    protected function router(Request $request,Response $response)
+    protected function parseRoute(Request $request,Response $response)
     {
         $route = $request->server['request_uri'];
-        $json = json_decode($request->rawContent(),true);
-        if(json_last_error() !== JSON_ERROR_NONE) {
-            $response->status(500);
-            $response->write('parse data error');
-        }
+        $data = [];
+
+        $data = $this->validate($request->rawContent());
         if($route === '/push') {
             $redis = new Redis();
-            $data = json_decode($request->rawcontent(),true);
-            $data['run_time'] = ($data['ttl'] ?? 100) + time();
+            $data['run_time'] = ($data['delay'] ?? 100) + time();
             $data['status'] = 'delay';
             $jobId = $data['id'] ?? md5($data);
             $redis->addJob($jobId,$data);
+            return $this->success('success');
         }
         return $data;
     }
@@ -111,7 +115,6 @@ class Http
         }
         foreach ($ids as $id) {
             $job = $redis->getOneJob($id);
-            var_dump($job,$id);
             if($job['run_time'] >= time() && $job['status'] == 'delay') {
                 $jobService->updateJob($job['id'],'status','ready');
                 $redis->push($readyQueue,$job['id']);
@@ -120,6 +123,42 @@ class Http
 
     }
 
+    protected function success(string $msg='ok',array $data = [])
+    {
+        return json_encode([
+            'code'=>0,
+            'message'=>$msg,
+            'data'=>$data
+        ],JSON_UNESCAPED_UNICODE);
+    }
+
+    protected function error(string $msg ='error',array $data =[])
+    {
+        return json_encode([
+            'code'=>1,
+            'message'=>$msg,
+            'data'=>$data
+        ],JSON_UNESCAPED_UNICODE);
+
+    }
+
+    protected function validate(string $raw)
+    {
+        $data = json_decode($raw,true);
+        if(json_last_error() !== JSON_ERROR_NONE) {
+            throw new RequestException('error');
+        }
+        if(!($data['id'] ?? '')) {
+            throw new RequestException('缺少jobID');
+        }
+        if(!($data['topic'] ?? '')) {
+            throw new RequestException('缺少topic');
+        }
+        if(!($data['delay'] ?? '')) {
+            throw new RequestException('缺少delay延迟时间');
+        }
+        return $data;
+    }
 
 
 }
