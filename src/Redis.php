@@ -6,7 +6,7 @@ namespace DelayQueue;
 class Redis
 {
 
-    protected $jobPrefix = 'topic_job';
+    protected  $jobPrefix = 'topic_job';
     protected $redis;
     protected $set = 'bucket';
     public function __construct(array $config = [])

@@ -10,6 +10,7 @@ class Http
 {
 
     protected $isEnd = false;
+    public static $container;
 
     /**
      * @var array
@@ -26,6 +27,7 @@ class Http
      */
     public function init()
     {
+        self::initContainer();
         $host  = self::$config['host'] ?? '0.0.0.0';
         $port = self::$config['port'] ?? '9501';
         $server = new HttpServer($host,$port);
@@ -35,6 +37,23 @@ class Http
         $server->start();
     }
 
+    protected static function initContainer()
+    {
+        self::$container = $container = \DelayQueue\Container::getInstance();
+        $container['redis'] = function (){
+            return new \DelayQueue\Redis();
+        };
+        $container['bucket'] = function (){
+            return new \DelayQueue\Bucket();
+        };
+        $container['job'] = function (){
+            return new \DelayQueue\Job();
+        };
+        $container['topic'] = function () {
+            return new \DelayQueue\Topic();
+        };
+        return $container;
+    }
     /**
      * Worker 启动回调
      *
@@ -86,7 +105,7 @@ class Http
 
         $data = $this->validate($request->rawContent());
         if($route === '/push') {
-            $redis = new Redis();
+            $redis = (Container::getInstance())['redis'];
             $data['run_time'] = ($data['delay'] ?? 100) + time();
             $data['status'] = 'delay';
             $jobId = $data['id'] ?? md5($data);
@@ -106,7 +125,7 @@ class Http
     public function ticker()
     {
         $bucket = self::$config['bucket'];
-        $redis = new Redis();
+        $redis = self::$container['redis'];
         $ids = $redis->getBucketJobs($bucket);
         $jobService = new Job($redis);
         $readyQueue = self::$config['ready_queue'];
@@ -147,15 +166,6 @@ class Http
         $data = json_decode($raw,true);
         if(json_last_error() !== JSON_ERROR_NONE) {
             throw new RequestException('error');
-        }
-        if(!($data['id'] ?? '')) {
-            throw new RequestException('缺少jobID');
-        }
-        if(!($data['topic'] ?? '')) {
-            throw new RequestException('缺少topic');
-        }
-        if(!($data['delay'] ?? '')) {
-            throw new RequestException('缺少delay延迟时间');
         }
         return $data;
     }
