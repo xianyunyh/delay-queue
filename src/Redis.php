@@ -6,9 +6,10 @@ namespace DelayQueue;
 class Redis
 {
 
-    protected  $jobPrefix = 'topic_job';
+    protected $jobPrefix = 'topic_job';
     protected $redis;
-    protected $set = 'bucket';
+    protected $set       = 'bucket';
+
     public function __construct(array $config = [])
     {
         $redis = new \Swoole\Coroutine\Redis();
@@ -22,7 +23,7 @@ class Redis
     public function getAll()
     {
         $keys = $this->redis->keys($this->jobPrefix);
-        if(empty($keys)) {
+        if (empty($keys)) {
             return [];
         }
         $data = [];
@@ -40,14 +41,15 @@ class Redis
      * @param $jobId
      * @param $data
      */
-    public function addJob($jobId,$data)
+    public function addJob($jobId, $data)
     {
-        if(empty($jobId) || empty($data)) {
+        if (empty($jobId) || empty($data)) {
             return false;
         }
         try {
-            $this->redis->hMSet($jobId,$data);
-            $this->redis->zAdd($this->set,time(),$jobId);
+            $this->redis->hMSet($jobId, $data);
+            $this->redis->zAdd($this->set, time(), $jobId);
+            return true;
         } catch (\Exception $e) {
             return false;
         }
@@ -59,13 +61,13 @@ class Redis
      */
     public function removeJob($jobId)
     {
-        if(empty($jobId)) {
-            return ;
+        if (empty($jobId)) {
+            return false;
         }
 
 
         $this->redis->delete($jobId);
-        return $this->redis->zRem($this->set,$jobId);
+        return $this->redis->zRem($this->set, $jobId);
     }
 
     /**
@@ -75,10 +77,9 @@ class Redis
      */
     public function getOneJob($jobId)
     {
-        if(empty($jobId)) {
+        if (empty($jobId)) {
             return [];
         }
-        $data = [];
         $result = $this->redis->hGetAll($jobId);
         return $this->all($result);
     }
@@ -86,13 +87,14 @@ class Redis
     protected function all(array $result)
     {
         $data = [];
-        foreach ($result as $key=>$item) {
-            if($key %2 == 0) {
-                $data[$result[$key]] = $result[$key+1];
+        foreach ($result as $key => $item) {
+            if ($key % 2 == 0) {
+                $data[$result[$key]] = $result[$key + 1];
             }
         }
         return $data;
     }
+
     /**
      * 获取topic中的jobs
      *
@@ -101,8 +103,7 @@ class Redis
     public function getTopicJobs($topicId)
     {
         $data = [];
-        while ($id = $this->redis->lPop($topicId))
-        {
+        while ($id = $this->redis->lPop($topicId)) {
             $data[] = $this->all($this->redis->hGetAll($id));
         }
         return $data;
@@ -114,24 +115,25 @@ class Redis
      */
     protected function getTopics()
     {
-        
+
     }
 
     public function getBucketJobs(string $set)
     {
-        return $this->redis->zrange($set,0,-1);
+        return $this->redis->zrange($set, 0, -1);
     }
 
 
-    public function update($id,$key,$value)
+    public function update($id, $key, $value)
     {
-        return $this->redis->hSetNx($id,$key,$value);
+        return $this->redis->hSetNx($id, $key, $value);
     }
 
-    public function push($bucket,$data)
+    public function push($bucket, $data)
     {
-        return $this->redis->lPushx($bucket,$data);
+        return $this->redis->lPushx($bucket, $data);
     }
+
     public function __call($name, $arguments)
     {
         return $this->redis->$name(...$arguments);
