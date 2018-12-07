@@ -1,12 +1,15 @@
 <?php
 namespace DelayQueue;
-
-
+/**
+ * Zset 桶
+ * Class Bucket
+ * @package DelayQueue
+ */
 class Bucket
 {
-    public function __construct(Redis $redis)
+    public function __construct()
     {
-        $this->redis = $redis;
+        $this->redis = Container::getInstance()['redis'];
     }
 
     public function append($bucket,$data)

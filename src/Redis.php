@@ -124,14 +124,19 @@ class Redis
     }
 
 
-    public function update($id, $key, $value)
+    public function update($id, $data)
     {
-        return $this->redis->hSetNx($id, $key, $value);
+        return $this->redis->hMSet($id, $data);
     }
 
-    public function push($bucket, $data)
+    public function push($queue, $data)
     {
-        return $this->redis->lPushx($bucket, $data);
+        return $this->redis->lPushx($queue, $data);
+    }
+
+    protected function pop($queue)
+    {
+        return $this->redis->lPop($queue);
     }
 
     public function __call($name, $arguments)

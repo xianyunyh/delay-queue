@@ -12,9 +12,9 @@ class Topic
      */
     protected $id;
 
-    public function __construct(Store $redis)
+    public function __construct()
     {
-        $this->store = $redis;
+        $this->store = Container::getInstance()['redis'];
     }
 
     public function getTopicData($topicId)

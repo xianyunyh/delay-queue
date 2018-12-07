@@ -1,4 +1,5 @@
 <?php
+
 namespace DelayQueue;
 
 class Container extends \Pimple\Container

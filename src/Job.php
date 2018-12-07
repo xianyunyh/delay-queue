@@ -33,9 +33,9 @@ class Job
 
     protected $topic;
 
-    public function __construct(Redis $store)
+    public function __construct()
     {
-        $this->store = $store;
+        $this->store = Container::getInstance()['redis'];
     }
 
     /**
@@ -133,9 +133,14 @@ class Job
         return $this->store->getOneJob($id);
     }
 
-    public function updateJob($id,$key,$value)
+    public function updateJob($id,$data)
     {
-        $this->store->update($id,$key,$value);
+        $this->store->update($id,$data);
+    }
+
+    public function pop($bucket)
+    {
+        return $this->store->pop($bucket);
     }
 
 

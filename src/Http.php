@@ -52,6 +52,9 @@ class Http
         $container['topic'] = function () {
             return new \DelayQueue\Topic();
         };
+        $container['ready_queue'] = function () {
+            return new \DelayQueue\ReadyQueue();
+        };
         return $container;
     }
     /**
@@ -104,15 +107,45 @@ class Http
         $data = [];
 
         $data = $this->validate($request->rawContent());
+        $redis = (Container::getInstance())['redis'];
+        $id = $data['id'] ?? '';
+        if(empty($id)) {
+            throw new RequestException('缺少参数ID');
+        }
+        $job = (Container::getInstance()['job']);
+        //加job
         if($route === '/push') {
-            $redis = (Container::getInstance())['redis'];
             $data['run_time'] = ($data['delay'] ?? 100) + time();
             $data['status'] = 'delay';
             $jobId = $data['id'] ?? md5($data);
             $redis->addJob($jobId,$data);
             return $this->success('success');
         }
-        return $data;
+        //删除job
+        if($route === '/delete') {
+            $job->deleteJob($data['id']);
+            return $this->success('success');
+        }
+
+        if($route === '/get') {
+            $info = $job->getJob($id);
+            return $this->success('ok',$info);
+        }
+
+        if($route === '/pop') {
+            $topic = $data['topic'] ?? '';
+            if(empty($topic)) {
+                return $this->success('ok');
+            }
+            $queue = Container::getInstance()['ready_queue'];
+            $res = $queue->pop($topic);
+            if(!$res) {
+                return $this->success('没有消费的job');
+            }
+            $job->updateJob($res['id'],['status'=>'reserved']);
+            return $this->success();
+        }
+        return $this->success($data);
     }
 
     /**
@@ -127,22 +160,23 @@ class Http
         $bucket = self::$config['bucket'];
         $redis = self::$container['redis'];
         $ids = $redis->getBucketJobs($bucket);
-        $jobService = new Job($redis);
-        $readyQueue = self::$config['ready_queue'];
+        $jobService = new Job();
+        $queueName = self::$config['ready_queue'];
         if(empty($ids)) {
             return ;
         }
         foreach ($ids as $id) {
             $job = $redis->getOneJob($id);
             if($job['run_time'] >= time() && $job['status'] == 'delay') {
-                $jobService->updateJob($job['id'],'status','ready');
-                $redis->push($readyQueue,$job['id']);
+                $jobService->updateJob($id,['status'=>'ready','ready_time'=>time()]);
+                $queue = Container::getInstance()['ready_queue'];
+                $queue->push($queueName,$job['id']);
             }
         }
 
     }
 
-    protected function success(string $msg='ok',array $data = [])
+    protected function success(string $msg='ok', $data = '')
     {
         return json_encode([
             'code'=>0,
