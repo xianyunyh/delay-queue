@@ -135,12 +135,14 @@ class Http
         if($route === '/pop') {
             $topic = $data['topic'] ?? '';
             if(empty($topic)) {
-                return $this->success('ok');
+                throw new RequestException('缺少topic');
             }
             $queue = Container::getInstance()['ready_queue'];
-            $res = $queue->pop($topic);
-            if(!$res) {
-                return $this->success('没有消费的job');
+            $queueName = self::$config['ready_queue'];
+
+            $res = $queue->pop($queueName);
+            if(!$res || !isset($res['id'])) {
+                throw new RequestException('没有消费的job');
             }
             $job->updateJob($res['id'],['status'=>'reserved']);
             return $this->success();

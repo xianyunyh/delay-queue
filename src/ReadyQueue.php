@@ -20,7 +20,7 @@ class ReadyQueue
         if(empty($queue)) {
             return false;
         }
-        return $this->redis->lPop($queue);
+        return $this->redis->pop($queue);
     }
 
 

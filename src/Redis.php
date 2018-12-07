@@ -134,7 +134,7 @@ class Redis
         return $this->redis->lPushx($queue, $data);
     }
 
-    protected function pop($queue)
+    public function pop($queue)
     {
         return $this->redis->lPop($queue);
     }
